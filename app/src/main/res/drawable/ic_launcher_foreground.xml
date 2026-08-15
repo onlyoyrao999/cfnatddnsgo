@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Cloud base -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M38,62 C33.5,62 30,58.5 30,54 C30,49.8 33.1,46.4 37.2,46.1 C38.5,41.4 42.8,38 48,38 C53.9,38 58.7,42.2 59.7,47.8 C60.8,47.3 62.1,47 63.5,47 C68.2,47 72,50.8 72,55.5 C72,60.2 68.2,64 63.5,64 L38,64 Z" />
+    <!-- Speed lightning bolt -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,44 L44,55 L51,55 L48,66 L59,53 L52,53 Z" />
+    <!-- Signal rings -->
+    <path
+        android:strokeColor="#FB923C"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M26,48 C22,54 22,62 26,68" />
+    <path
+        android:strokeColor="#FB923C"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M76,48 C80,54 80,62 76,68" />
+</vector>

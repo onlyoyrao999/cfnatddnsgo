@@ -1,0 +1,8 @@
+{
+  "name": "cfnat 智能 IP 优选代理",
+  "description": "基于 Go 语言思想重写的工具，监控、过滤并轮询优选 Cloudflare IP，以维持快速有效的网络连接。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
