@@ -49,9 +49,9 @@ fun MainAppScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
-        NavTabItem("扫描器", Icons.Default.Bolt, "tab_scanner"),
-        NavTabItem("已存 IP", Icons.Default.Storage, "tab_saved"),
-        NavTabItem("CF 同步", Icons.Default.CloudSync, "tab_dns")
+        NavTabItem("扫描网络", Icons.Default.Bolt, "tab_scanner"),
+        NavTabItem("本地储存", Icons.Default.Storage, "tab_saved"),
+        NavTabItem("同步数据", Icons.Default.CloudSync, "tab_dns")
     )
 
     val scanProgress by viewModel.scanProgress.collectAsStateWithLifecycle()
