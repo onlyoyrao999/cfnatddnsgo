@@ -1,6 +1,6 @@
-# CF IP Scanner & DNS Sync 🚀
+# CF IP 优选与代理 🚀
 
-**CF IP Scanner & DNS Sync** 是一款基于 Android 平台的 Cloudflare 优选 IP 扫描与自动 DNS 解析同步工具。它可以帮助您快速扫描 Cloudflare 边缘节点，找出延迟最低的优质 IP，并严格按照节点区域自动将其同步到您的 Cloudflare 域名解析记录中。
+**CF IP 优选与代理** 是一款基于 Android 平台的 Cloudflare 优选 IP 扫描与自动 DNS 解析同步工具。它可以帮助您快速扫描 Cloudflare 边缘节点，找出延迟最低的优质 IP，并严格按照节点区域自动将其同步到您的 Cloudflare 域名解析记录中。
 
 ## ✨ 核心功能
 
@@ -27,10 +27,10 @@
 
 ## 📖 快速上手指南
 
-1. **测速扫描**: 打开 App 进入「Scanner」页面，点击 "START HIGH-SPEED SCAN" 开始获取并测速 IP。
+1. **测速扫描**: 打开 App 进入「扫描网络」页面，点击 "开始高速扫描" 开始获取并测速 IP。
 2. **分类查看**: 在扫描结果中，点击中部的标签（如 `SJC`, `LAX` 等）可以快速筛选特定区域的优选 IP。
-3. **配置 DNS 同步规则**: 进入「CF Sync」页面，点击 `+` 按钮，填入您的 Cloudflare API 密钥、Zone ID，设置目标域名和匹配规则（Colo Filter 填入对应的机场码，如 `LAX`）。
-4. **执行同步**: 开启规则开关后，点击 "Sync All" 或单条规则的 "Sync Now"，App 会自动从最新扫描结果或本地 IP 库中提取最优 IP，并自动更新至 Cloudflare。
+3. **配置 DNS 同步规则**: 进入「同步数据」页面，点击 `+` 按钮，填入您的 Cloudflare API 密钥、Zone ID，设置目标域名和匹配规则（数据中心过滤填入对应的机场码，如 `LAX`）。
+4. **执行同步**: 开启规则开关后，点击 "全部同步" 或单条规则的 "立即同步"，App 会自动从最新扫描结果或本地 IP 库（本地储存）中提取最优 IP，并自动更新至 Cloudflare。
 
 ## 🛠️ 本地构建与开发
 
@@ -38,7 +38,7 @@
 
 1. 将项目 Clone 到本地环境：
    ```bash
-   git clone https://github.com/onlyoyrao999/cfnatddns.git
+   git clone https://github.com/onlyoyrao999/cfnatddnsgo.git
    ```
 2. 确保您的环境已安装 Java 21。
 3. 使用 Android Studio 打开项目。
