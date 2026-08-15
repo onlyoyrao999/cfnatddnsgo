@@ -64,7 +64,7 @@ fun MainAppScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "CF IP 扫描与 DNS 同步",
+                        text = "Cf IP 扫描与DNS",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = OffWhiteText

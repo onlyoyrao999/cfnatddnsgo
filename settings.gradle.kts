@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "CF Scanner & Proxy"
+rootProject.name = "Cloudflare IP 优选与DNS"
 
 include(":app")
