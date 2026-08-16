@@ -30,10 +30,11 @@ import android.content.SharedPreferences
 
 class MainViewModel(
     private val repository: IpRepository,
-    private val prefs: SharedPreferences
+    private val prefs: SharedPreferences,
+    private val context: Context
 ) : ViewModel() {
 
-    private val scannerEngine = IpScannerEngine()
+    private val scannerEngine = IpScannerEngine(context)
     private val proxyServer = TcpProxyServer()
     private val dnsSyncService = CloudflareDnsSyncService()
 
@@ -405,12 +406,13 @@ class MainViewModel(
 
 class MainViewModelFactory(
     private val repository: IpRepository,
-    private val prefs: SharedPreferences
+    private val prefs: SharedPreferences,
+    private val context: Context
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return MainViewModel(repository, prefs) as T
+            return MainViewModel(repository, prefs, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

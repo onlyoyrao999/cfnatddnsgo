@@ -1,5 +1,6 @@
 package com.example.service
 
+import android.content.Context
 import com.example.data.model.ScanConfig
 import com.example.data.model.ScannedIp
 import com.example.data.network.CloudflareCidrs
@@ -33,7 +34,7 @@ data class ScanProgressState(
     val statusMessage: String = "就绪"
 )
 
-class IpScannerEngine {
+class IpScannerEngine(private val context: Context) {
 
     private val _progressState = MutableStateFlow(ScanProgressState())
     val progressState: StateFlow<ScanProgressState> = _progressState.asStateFlow()
@@ -65,7 +66,7 @@ class IpScannerEngine {
         val locationsMap = CloudflareLocations.loadLocations()
 
         val isIpv6 = config.ipType == "6"
-        val cidrs = CloudflareCidrs.fetchRemoteIps(isIpv6)
+        val cidrs = CloudflareCidrs.fetchLocalIps(context, isIpv6)
 
         _progressState.value = _progressState.value.copy(
             statusMessage = "正在生成目标 IP 地址..."

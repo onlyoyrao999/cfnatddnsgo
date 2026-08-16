@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         val db = AppDatabase.getInstance(applicationContext)
         val repository = IpRepository(db.scannedIpDao(), db.scanHistoryDao(), db.cfDnsRuleDao())
         val prefs = getSharedPreferences("cf_scanner_prefs", android.content.Context.MODE_PRIVATE)
-        val factory = MainViewModelFactory(repository, prefs)
+        val factory = MainViewModelFactory(repository, prefs, applicationContext)
         viewModel = ViewModelProvider(this, factory)[MainViewModel::class.java]
 
         setContent {
