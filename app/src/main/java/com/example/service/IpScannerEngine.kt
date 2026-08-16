@@ -70,7 +70,11 @@ class IpScannerEngine(private val context: Context) {
         isCancelled = false
         _progressState.value = _progressState.value.copy(
             isScanning = true,
-            statusMessage = "正在加载 Cloudflare 数据中心和子网..."
+            statusMessage = "正在加载 Cloudflare 数据中心和子网...",
+            results = emptyList(),
+            scannedCount = 0,
+            validCount = 0,
+            progressPercentage = 0f
         )
 
         val locationsMap = CloudflareLocations.loadLocations()
@@ -99,23 +103,13 @@ class IpScannerEngine(private val context: Context) {
                 filters.any { filter -> ip.dataCenter.equals(filter, ignoreCase = true) }
             }
         }
-                val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
+        val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
         
-        // Pre-populate coloCounts so we know how many we already have
-        existingResults.forEach { ip ->
-            val colo = ip.dataCenter.uppercase()
-            coloCounts.getOrPut(colo) { AtomicInteger(0) }.incrementAndGet()
-        }
-        
-        // If we already met the goal before scanning, don't scan
-        if (!isAllRegions && filters.isNotEmpty()) {
-            val allMet = filters.all { f ->
-                (coloCounts[f.uppercase()]?.get() ?: 0) >= maxPerColo
-            }
-            if (allMet) {
-                goalMet.set(true)
-            }
-        }
+        // Update the UI immediately to show only the filtered results
+        _progressState.value = _progressState.value.copy(
+            results = existingResults,
+            validCount = existingResults.size
+        )
 
         
         var batchCount = 0

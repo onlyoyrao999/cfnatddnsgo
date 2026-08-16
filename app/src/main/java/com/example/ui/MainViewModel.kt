@@ -65,28 +65,6 @@ class MainViewModel(
         initialValue = emptyList()
     )
 
-    
-    init {
-        viewModelScope.launch {
-            repository.savedIps.collect { savedEntities ->
-                if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty()) {
-                    val initialIps = savedEntities.map { entity ->
-                        ScannedIp(
-                            ip = entity.ip,
-                            dataCenter = entity.dataCenter,
-                            region = entity.region,
-                            city = entity.city,
-                            latencyMs = entity.latencyMs,
-                            testedAt = entity.testedAt,
-                            ipVersion = entity.ipVersion
-                        )
-                    }
-                    scannerEngine.setInitialResults(initialIps)
-                }
-            }
-        }
-    }
-
     private fun loadScanConfig(): ScanConfig {
         return ScanConfig(
             ipType = prefs.getString("sc_ipType", "4") ?: "4",
@@ -124,6 +102,28 @@ class MainViewModel(
 
     private val _isAutoSyncEnabled = MutableStateFlow(prefs.getBoolean("sc_autoSync", true))
     val isAutoSyncEnabled: StateFlow<Boolean> = _isAutoSyncEnabled.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.savedIps.collect { savedEntities ->
+                if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty()) {
+                    val initialIps = savedEntities.map { entity ->
+                        ScannedIp(
+                            ip = entity.ip,
+                            dataCenter = entity.dataCenter,
+                            region = entity.region,
+                            city = entity.city,
+                            latencyMs = entity.latencyMs,
+                            testedAt = entity.testedAt,
+                            ipVersion = entity.ipVersion
+                        )
+                    }
+                    scannerEngine.setInitialResults(initialIps)
+                }
+            }
+        }
+    }
+
 
     fun setAutoSyncEnabled(enabled: Boolean) {
         _isAutoSyncEnabled.value = enabled
