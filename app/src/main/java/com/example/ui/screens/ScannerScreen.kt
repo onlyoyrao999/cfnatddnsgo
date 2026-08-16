@@ -541,15 +541,8 @@ fun QuickFilterChips(
         scanProgress.results.map { it.dataCenter.uppercase() }.filter { it.isNotBlank() }.distinct().sorted()
     }
     
-    val presets = remember(dynamicColos, scanConfig.coloFilter) {
-        val currentFilters = scanConfig.coloFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotBlank() }
-        val isAllSelected = currentFilters.isEmpty() || currentFilters.contains("ALL")
-        if (isAllSelected) {
-            val selectedOnly = currentFilters.filter { it != "ALL" }.sorted()
-            listOf("ALL") + selectedOnly
-        } else {
-            listOf("ALL") + dynamicColos
-        }
+    val presets = remember(dynamicColos) {
+        listOf("ALL") + dynamicColos
     }
 
     LazyRow(
