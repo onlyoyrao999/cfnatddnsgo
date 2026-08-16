@@ -149,27 +149,16 @@ fun ScannerScreen(
             scanConfig = scanConfig,
             scanProgress = scanProgress,
             onColoSelect = { colo ->
-                if (colo == "ALL") {
-                    viewModel.updateScanConfig(scanConfig.copy(coloFilter = ""))
-                } else {
-                    val currentFilters = scanConfig.coloFilter.split(",")
-                        .map { it.trim().uppercase() }
-                        .filter { it.isNotBlank() && it != "ALL" }
-                        .toMutableSet()
-                    if (currentFilters.contains(colo)) {
-                        currentFilters.remove(colo)
-                    } else {
-                        currentFilters.add(colo)
-                    }
-                    viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
-                }
-            },
-            onColoRemove = { coloToRemove ->
                 val currentFilters = scanConfig.coloFilter.split(",")
                     .map { it.trim().uppercase() }
-                    .filter { it.isNotBlank() && it != "ALL" }
+                    .filter { it.isNotBlank() }
                     .toMutableSet()
-                currentFilters.remove(coloToRemove)
+                
+                if (currentFilters.contains(colo)) {
+                    currentFilters.remove(colo)
+                } else {
+                    currentFilters.add(colo)
+                }
                 viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
             }
         )
@@ -193,7 +182,7 @@ fun ScannerScreen(
             
             // Limit to max 10 IPs per datacenter
             filteredResults.groupBy { it.dataCenter.uppercase() }
-                .flatMap { it.value.take(10) }
+                .flatMap { it.value.sortedBy { ip -> ip.latencyMs }.take(10) }
                 .sortedBy { it.latencyMs }
         }
 
@@ -520,10 +509,8 @@ fun ScanConfigCard(
 fun QuickFilterChips(
     scanConfig: ScanConfig,
     scanProgress: ScanProgressState,
-    onColoSelect: (String) -> Unit,
-    onColoRemove: (String) -> Unit
+    onColoSelect: (String) -> Unit
 ) {
-    var manuallyRemovedColos by remember { mutableStateOf(setOf<String>()) }
     var discoveredColos by remember { 
         mutableStateOf(
             scanConfig.coloFilter.split(",")
@@ -533,10 +520,9 @@ fun QuickFilterChips(
         ) 
     }
     
-    // Reset manually removed colos and clear unselected discovered colos when a new scan starts
+    // Clear unselected discovered colos when a new scan starts
     LaunchedEffect(scanProgress.isScanning) {
         if (scanProgress.isScanning) {
-            manuallyRemovedColos = emptySet()
             discoveredColos = scanConfig.coloFilter.split(",")
                 .map { it.trim().uppercase() }
                 .filter { it.isNotBlank() && it != "ALL" }
@@ -552,10 +538,8 @@ fun QuickFilterChips(
         }
     }
 
-    val dynamicColos = remember(discoveredColos, manuallyRemovedColos) {
-        discoveredColos
-            .filter { it !in manuallyRemovedColos }
-            .sorted()
+    val dynamicColos = remember(discoveredColos) {
+        discoveredColos.sorted()
     }
     
     val presets = remember(dynamicColos) {
@@ -566,21 +550,13 @@ fun QuickFilterChips(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(presets) { colo ->
-            var showDeleteIcon by remember { mutableStateOf(false) }
             val currentFilters = scanConfig.coloFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotBlank() }
             val isSelected = if (colo == "ALL") currentFilters.isEmpty() || currentFilters.contains("ALL") else currentFilters.contains(colo)
             
             Surface(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .combinedClickable(
-                        onClick = { onColoSelect(colo) },
-                        onLongClick = {
-                            if (colo != "ALL") {
-                                showDeleteIcon = true
-                            }
-                        }
-                    ),
+                    .clickable { onColoSelect(colo) },
                 shape = RoundedCornerShape(8.dp),
                 color = if (isSelected) CfOrangePrimary else MaterialTheme.colorScheme.surfaceVariant,
                 contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -590,21 +566,6 @@ fun QuickFilterChips(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = colo, fontSize = 12.sp)
-                    if (colo != "ALL" && showDeleteIcon) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "删除 $colo",
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clickable { 
-                                    manuallyRemovedColos = manuallyRemovedColos + colo 
-                                    onColoRemove(colo)
-                                    showDeleteIcon = false
-                                },
-                            tint = if (isSelected) Color.White else MutedText
-                        )
-                    }
                 }
             }
         }
