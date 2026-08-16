@@ -147,6 +147,27 @@ fun ScannerScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
+        // Quick Preset Filter Bar
+        QuickFilterChips(
+            scanConfig = scanConfig,
+            scanProgress = scanProgress,
+            onColoSelect = { colo ->
+                val currentFilters = scanConfig.coloFilter.split(",")
+                    .map { it.trim().uppercase() }
+                    .filter { it.isNotBlank() }
+                    .toMutableSet()
+                
+                if (currentFilters.contains(colo)) {
+                    currentFilters.remove(colo)
+                } else {
+                    currentFilters.add(colo)
+                }
+                viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
+            }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         val displayResults = remember(scanProgress.results, scanConfig.coloFilter) {
             val uniqueResults = scanProgress.results.distinctBy { it.ip }
             val filteredResults = if (scanConfig.coloFilter.isNotBlank()) {
@@ -167,29 +188,6 @@ fun ScannerScreen(
                 .flatMap { it.value.sortedBy { ip -> ip.latencyMs }.take(10) }
                 .sortedBy { it.latencyMs }
         }
-
-        // Quick Preset Filter Bar
-        QuickFilterChips(
-            scanConfig = scanConfig,
-            scanProgress = scanProgress,
-            displayResults = displayResults,
-            onColoSelect = { colo ->
-                val currentFilters = scanConfig.coloFilter.split(",")
-                    .map { it.trim().uppercase() }
-                    .filter { it.isNotBlank() }
-                    .toMutableSet()
-                
-                if (currentFilters.contains(colo)) {
-                    currentFilters.remove(colo)
-                } else {
-                    currentFilters.add(colo)
-                }
-                
-                val newFilterStr = currentFilters.joinToString(",")
-                viewModel.updateScanConfig(scanConfig.copy(coloFilter = newFilterStr))
-            }
-        )
-
 
         // Results Section Header
         Row(
@@ -532,13 +530,37 @@ fun ScanConfigCard(
 fun QuickFilterChips(
     scanConfig: ScanConfig,
     scanProgress: ScanProgressState,
-    displayResults: List<ScannedIp>,
     onColoSelect: (String) -> Unit
 ) {
-    // Strictly derive chips from the currently available IPs in the engine.
-    // No historical accumulation. If it's not in the results, it doesn't get a chip.
-    val dynamicColos = remember(scanProgress.results) {
-        scanProgress.results.map { it.dataCenter.uppercase() }.filter { it.isNotBlank() }.distinct().sorted()
+    var discoveredColos by remember { 
+        mutableStateOf(
+            scanConfig.coloFilter.split(",")
+                .map { it.trim().uppercase() }
+                .filter { it.isNotBlank() && it != "ALL" }
+                .toSet()
+        ) 
+    }
+    
+    // Clear unselected discovered colos when a new scan starts
+    LaunchedEffect(scanProgress.isScanning) {
+        if (scanProgress.isScanning) {
+            discoveredColos = scanConfig.coloFilter.split(",")
+                .map { it.trim().uppercase() }
+                .filter { it.isNotBlank() && it != "ALL" }
+                .toSet()
+        }
+    }
+
+    // Accumulate discovered colos over time
+    LaunchedEffect(scanProgress.results) {
+        if (scanProgress.results.isNotEmpty()) {
+            val newColos = scanProgress.results.map { it.dataCenter.uppercase() }.toSet()
+            discoveredColos = discoveredColos + newColos
+        }
+    }
+
+    val dynamicColos = remember(discoveredColos) {
+        discoveredColos.sorted()
     }
     
     val presets = remember(dynamicColos) {
