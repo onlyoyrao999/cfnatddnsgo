@@ -7,6 +7,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -147,7 +149,20 @@ fun ScannerScreen(
             scanConfig = scanConfig,
             scanProgress = scanProgress,
             onColoSelect = { colo ->
-                viewModel.updateScanConfig(scanConfig.copy(coloFilter = colo))
+                if (colo == "ALL") {
+                    viewModel.updateScanConfig(scanConfig.copy(coloFilter = ""))
+                } else {
+                    val currentFilters = scanConfig.coloFilter.split(",")
+                        .map { it.trim().uppercase() }
+                        .filter { it.isNotBlank() && it != "ALL" }
+                        .toMutableSet()
+                    if (currentFilters.contains(colo)) {
+                        currentFilters.remove(colo)
+                    } else {
+                        currentFilters.add(colo)
+                    }
+                    viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
+                }
             }
         )
 
@@ -487,6 +502,7 @@ fun ScanConfigCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QuickFilterChips(
     scanConfig: ScanConfig,
@@ -494,6 +510,14 @@ fun QuickFilterChips(
     onColoSelect: (String) -> Unit
 ) {
     var manuallyRemovedColos by remember { mutableStateOf(setOf<String>()) }
+    var discoveredColos by remember { 
+        mutableStateOf(
+            scanConfig.coloFilter.split(",")
+                .map { it.trim().uppercase() }
+                .filter { it.isNotBlank() && it != "ALL" }
+                .toSet()
+        ) 
+    }
     
     // Reset manually removed colos when a new scan starts
     LaunchedEffect(scanProgress.isScanning) {
@@ -502,10 +526,16 @@ fun QuickFilterChips(
         }
     }
 
-    val dynamicColos = remember(scanProgress.results, manuallyRemovedColos) {
-        scanProgress.results
-            .map { it.dataCenter.uppercase() }
-            .distinct()
+    // Accumulate discovered colos over time
+    LaunchedEffect(scanProgress.results) {
+        if (scanProgress.results.isNotEmpty()) {
+            val newColos = scanProgress.results.map { it.dataCenter.uppercase() }.toSet()
+            discoveredColos = discoveredColos + newColos
+        }
+    }
+
+    val dynamicColos = remember(discoveredColos, manuallyRemovedColos) {
+        discoveredColos
             .filter { it !in manuallyRemovedColos }
             .sorted()
     }
@@ -519,45 +549,45 @@ fun QuickFilterChips(
     ) {
         items(presets) { colo ->
             var showDeleteIcon by remember { mutableStateOf(false) }
-            val isSelected = scanConfig.coloFilter.equals(colo, ignoreCase = true) || 
-                             (colo == "ALL" && scanConfig.coloFilter.isBlank())
-            FilterChip(
-                selected = isSelected,
-                onClick = { onColoSelect(colo) },
-                modifier = Modifier.pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = {
+            val currentFilters = scanConfig.coloFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotBlank() }
+            val isSelected = if (colo == "ALL") currentFilters.isEmpty() || currentFilters.contains("ALL") else currentFilters.contains(colo)
+            
+            Surface(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .combinedClickable(
+                        onClick = { onColoSelect(colo) },
+                        onLongClick = {
                             if (colo != "ALL") {
                                 showDeleteIcon = true
                             }
-                        },
-                        onTap = { onColoSelect(colo) }
-                    )
-                },
-                label = { 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = colo, fontSize = 12.sp)
-                        if (colo != "ALL" && showDeleteIcon) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "删除 $colo",
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clickable { 
-                                        manuallyRemovedColos = manuallyRemovedColos + colo 
-                                        showDeleteIcon = false
-                                    },
-                                tint = if (isSelected) Color.White else MutedText
-                            )
                         }
+                    ),
+                shape = RoundedCornerShape(8.dp),
+                color = if (isSelected) CfOrangePrimary else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = colo, fontSize = 12.sp)
+                    if (colo != "ALL" && showDeleteIcon) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "删除 $colo",
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clickable { 
+                                    manuallyRemovedColos = manuallyRemovedColos + colo 
+                                    showDeleteIcon = false
+                                },
+                            tint = if (isSelected) Color.White else MutedText
+                        )
                     }
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = CfOrangePrimary,
-                    selectedLabelColor = Color.White
-                )
-            )
+                }
+            }
         }
     }
 }
