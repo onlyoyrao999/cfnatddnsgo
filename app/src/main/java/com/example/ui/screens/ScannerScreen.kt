@@ -176,20 +176,16 @@ fun ScannerScreen(
             onColoSelect = { colo ->
                 val currentFilters = scanConfig.coloFilter.split(",")
                     .map { it.trim().uppercase() }
-                    .filter { it.isNotBlank() && it != "ALL" }
+                    .filter { it.isNotBlank() }
                     .toMutableSet()
                 
-                if (colo == "ALL") {
-                    currentFilters.clear()
+                if (currentFilters.contains(colo)) {
+                    currentFilters.remove(colo)
                 } else {
-                    if (currentFilters.contains(colo)) {
-                        currentFilters.remove(colo)
-                    } else {
-                        currentFilters.add(colo)
-                    }
+                    currentFilters.add(colo)
                 }
                 
-                val newFilterStr = if (currentFilters.isEmpty()) "ALL" else currentFilters.joinToString(",")
+                val newFilterStr = currentFilters.joinToString(",")
                 viewModel.updateScanConfig(scanConfig.copy(coloFilter = newFilterStr))
             }
         )
@@ -545,8 +541,15 @@ fun QuickFilterChips(
         scanProgress.results.map { it.dataCenter.uppercase() }.filter { it.isNotBlank() }.distinct().sorted()
     }
     
-    val presets = remember(dynamicColos) {
-        listOf("ALL") + dynamicColos
+    val presets = remember(dynamicColos, scanConfig.coloFilter) {
+        val currentFilters = scanConfig.coloFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotBlank() }
+        val isAllSelected = currentFilters.isEmpty() || currentFilters.contains("ALL")
+        if (isAllSelected) {
+            val selectedOnly = currentFilters.filter { it != "ALL" }.sorted()
+            listOf("ALL") + selectedOnly
+        } else {
+            listOf("ALL") + dynamicColos
+        }
     }
 
     LazyRow(
