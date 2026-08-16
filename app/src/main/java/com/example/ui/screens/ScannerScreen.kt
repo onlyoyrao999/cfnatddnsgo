@@ -13,6 +13,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -384,7 +387,9 @@ fun ScanConfigCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -461,12 +466,12 @@ fun ScanConfigCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("目标 IP 数量", style = MaterialTheme.typography.bodyMedium.copy(color = OffWhiteText))
-                    Text(if (scanConfig.ipCount >= 10000) "无限 (达标即停)" else "${scanConfig.ipCount} IPs", style = MaterialTheme.typography.bodyMedium.copy(color = CfOrangePrimary, fontWeight = FontWeight.Bold))
+                    Text("${scanConfig.ipCount} IPs", style = MaterialTheme.typography.bodyMedium.copy(color = CfOrangePrimary, fontWeight = FontWeight.Bold))
                 }
                 Slider(
                     value = scanConfig.ipCount.toFloat(),
                     onValueChange = { onConfigChange(scanConfig.copy(ipCount = it.toInt())) },
-                    valueRange = 100f..10000f,
+                    valueRange = 100f..3000f,
                     colors = SliderDefaults.colors(thumbColor = CfOrangePrimary, activeTrackColor = CfOrangePrimary)
                 )
             }
