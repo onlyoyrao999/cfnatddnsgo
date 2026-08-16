@@ -48,6 +48,16 @@ class IpScannerEngine(private val context: Context) {
     @Volatile
     private var isCancelled = false
 
+    
+    fun setInitialResults(initialResults: List<ScannedIp>) {
+        if (!_progressState.value.isScanning && _progressState.value.results.isEmpty()) {
+            _progressState.value = _progressState.value.copy(
+                results = initialResults,
+                statusMessage = "就绪"
+            )
+        }
+    }
+
     fun stopScan() {
         isCancelled = true
         _progressState.value = _progressState.value.copy(
@@ -58,7 +68,7 @@ class IpScannerEngine(private val context: Context) {
 
     suspend fun startScan(config: ScanConfig) = withContext(Dispatchers.IO) {
         isCancelled = false
-        _progressState.value = ScanProgressState(
+        _progressState.value = _progressState.value.copy(
             isScanning = true,
             statusMessage = "正在加载 Cloudflare 数据中心和子网..."
         )
@@ -72,10 +82,11 @@ class IpScannerEngine(private val context: Context) {
             statusMessage = "正在生成目标 IP 地址..."
         )
 
+        val actualGenerateCount = if (config.ipCount >= 10000) 100000 else config.ipCount
         val candidateIps = if (isIpv6) {
-            IpGenerator.getRandomIPv6s(cidrs, count = config.ipCount)
+            IpGenerator.getRandomIPv6s(cidrs, count = actualGenerateCount)
         } else {
-            IpGenerator.getRandomIPv4s(cidrs, count = config.ipCount)
+            IpGenerator.getRandomIPv4s(cidrs, count = actualGenerateCount)
         }
 
         if (candidateIps.isEmpty()) {
@@ -89,15 +100,16 @@ class IpScannerEngine(private val context: Context) {
         val total = candidateIps.size
         val scannedCounter = AtomicInteger(0)
         val validCounter = AtomicInteger(0)
-        val resultsQueue = ConcurrentLinkedQueue<ScannedIp>()
+        val existingResults = _progressState.value.results
+        val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
 
-        _progressState.value = ScanProgressState(
+        _progressState.value = _progressState.value.copy(
             isScanning = true,
             scannedCount = 0,
             totalCount = total,
-            validCount = 0,
+            validCount = existingResults.size,
             progressPercentage = 0f,
-            results = emptyList(),
+            results = existingResults,
             statusMessage = "正在使用 ${config.maxThreads} 个线程扫描 $total 个 IP..."
         )
 
@@ -107,16 +119,17 @@ class IpScannerEngine(private val context: Context) {
         } else emptyList()
 
         val isAllRegions = filters.isEmpty() || filters.contains("ALL")
-        val maxPerColo = 10
+        val maxPerColo = config.maxPerColo
         val coloCounts = ConcurrentHashMap<String, AtomicInteger>()
 
+        val goalMet = java.util.concurrent.atomic.AtomicBoolean(false)
         coroutineScope {
             candidateIps.forEach { ipAddr ->
-                if (isCancelled) return@forEach
+                if (isCancelled || goalMet.get()) return@forEach
 
                 launch {
                     semaphore.withPermit {
-                        if (isCancelled) return@withPermit
+                        if (isCancelled || goalMet.get()) return@withPermit
 
                         val scannedIp = testIpAddress(
                             ip = ipAddr,
@@ -142,17 +155,31 @@ class IpScannerEngine(private val context: Context) {
                                 val coloCount = coloCounts.getOrPut(colo) { AtomicInteger(0) }
                                 
                                 // Limit to maxPerColo if in ALL mode
-                                if (!isAllRegions || coloCount.get() < maxPerColo) {
+                                // Limit to maxPerColo if in ALL mode (or any mode now)
+                                if (coloCount.get() < maxPerColo) {
                                     coloCount.incrementAndGet()
                                     validCounter.incrementAndGet()
                                     resultsQueue.add(scannedIp)
+                                    
+                                    // Check if goal is met for auto-stop in Infinite mode
+                                    if (config.ipCount >= 10000 && !isAllRegions && filters.isNotEmpty()) {
+                                        val allMet = filters.all { f ->
+                                            (coloCounts[f.uppercase()]?.get() ?: 0) >= maxPerColo
+                                        }
+                                        if (allMet) {
+                                            goalMet.set(true)
+                                        }
+                                    }
                                 }
                             }
                         }
 
                         // Periodically update UI (every 5 IPs or at final scan item)
                         if (currentScanned % 5 == 0 || currentScanned == total) {
-                            val validList = resultsQueue.distinctBy { it.ip }.sortedBy { it.latencyMs }
+                            val uniqueSorted = resultsQueue.distinctBy { it.ip }.sortedBy { it.latencyMs }
+                            val validList = uniqueSorted.groupBy { it.dataCenter.uppercase() }
+                                .flatMap { it.value.take(maxPerColo) }
+                                .sortedBy { it.latencyMs }
                             val pct = currentScanned.toFloat() / total.toFloat()
 
                             _progressState.value = ScanProgressState(
@@ -170,8 +197,11 @@ class IpScannerEngine(private val context: Context) {
             }
         }
 
-        val finalResults = resultsQueue.distinctBy { it.ip }.sortedBy { it.latencyMs }.take(config.ipCount)
-        _progressState.value = ScanProgressState(
+        val finalUniqueSorted = resultsQueue.distinctBy { it.ip }.sortedBy { it.latencyMs }
+        val finalResults = finalUniqueSorted.groupBy { it.dataCenter.uppercase() }
+            .flatMap { it.value.take(maxPerColo) }
+            .sortedBy { it.latencyMs }
+        _progressState.value = _progressState.value.copy(
             isScanning = false,
             scannedCount = total,
             totalCount = total,

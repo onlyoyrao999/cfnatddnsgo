@@ -65,6 +65,28 @@ class MainViewModel(
         initialValue = emptyList()
     )
 
+    
+    init {
+        viewModelScope.launch {
+            repository.savedIps.collect { savedEntities ->
+                if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty()) {
+                    val initialIps = savedEntities.map { entity ->
+                        ScannedIp(
+                            ip = entity.ip,
+                            dataCenter = entity.dataCenter,
+                            region = entity.region,
+                            city = entity.city,
+                            latencyMs = entity.latencyMs,
+                            testedAt = entity.testedAt,
+                            ipVersion = entity.ipVersion
+                        )
+                    }
+                    scannerEngine.setInitialResults(initialIps)
+                }
+            }
+        }
+    }
+
     private fun loadScanConfig(): ScanConfig {
         return ScanConfig(
             ipType = prefs.getString("sc_ipType", "4") ?: "4",
@@ -92,6 +114,7 @@ class MainViewModel(
             putBoolean("sc_random", config.random)
             putInt("sc_ipCount", config.ipCount)
             putBoolean("sc_useTls", config.useTls)
+            putInt("sc_maxPerColo", config.maxPerColo)
         }.apply()
     }
 
@@ -131,6 +154,9 @@ class MainViewModel(
                     )
                 )
 
+                val currentSaved = savedIps.value
+                val favoriteMap = currentSaved.associate { it.ip to it.isFavorite }
+
                 // Save top scanned IPs into database automatically
                 val entities = state.results.map { ip ->
                     ScannedIpEntity(
@@ -141,7 +167,7 @@ class MainViewModel(
                         latencyMs = ip.latencyMs,
                         testedAt = ip.testedAt,
                         ipVersion = ip.ipVersion,
-                        isFavorite = false,
+                        isFavorite = favoriteMap[ip.ip] ?: false,
                         port = config.port
                     )
                 }

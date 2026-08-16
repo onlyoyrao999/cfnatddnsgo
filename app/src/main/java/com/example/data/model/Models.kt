@@ -43,7 +43,8 @@ data class ScanConfig(
     val expectedCode: Int = 200,
     val random: Boolean = true,
     val ipCount: Int = 2000,
-    val useTls: Boolean = true
+    val useTls: Boolean = true,
+    val maxPerColo: Int = 10
 )
 
 /**
