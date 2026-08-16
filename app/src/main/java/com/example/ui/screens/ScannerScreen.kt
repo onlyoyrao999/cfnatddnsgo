@@ -7,6 +7,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -57,6 +59,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -489,26 +493,66 @@ fun QuickFilterChips(
     scanProgress: ScanProgressState,
     onColoSelect: (String) -> Unit
 ) {
-    val dynamicColos = remember(scanProgress.results) {
-        scanProgress.results.map { it.dataCenter.uppercase() }.distinct().sorted()
+    var manuallyRemovedColos by remember { mutableStateOf(setOf<String>()) }
+    
+    // Reset manually removed colos when a new scan starts
+    LaunchedEffect(scanProgress.isScanning) {
+        if (scanProgress.isScanning) {
+            manuallyRemovedColos = emptySet()
+        }
+    }
+
+    val dynamicColos = remember(scanProgress.results, manuallyRemovedColos) {
+        scanProgress.results
+            .map { it.dataCenter.uppercase() }
+            .distinct()
+            .filter { it !in manuallyRemovedColos }
+            .sorted()
     }
     
     val presets = remember(dynamicColos) {
-        val defaultPresets = listOf("HKG", "SJC", "LAX", "NRT", "SIN", "TPE", "FRA", "LHR")
-        val combined = (defaultPresets + dynamicColos).distinct()
-        listOf("ALL") + combined
+        listOf("ALL") + dynamicColos
     }
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(presets) { colo ->
+            var showDeleteIcon by remember { mutableStateOf(false) }
             val isSelected = scanConfig.coloFilter.equals(colo, ignoreCase = true) || 
                              (colo == "ALL" && scanConfig.coloFilter.isBlank())
             FilterChip(
                 selected = isSelected,
                 onClick = { onColoSelect(colo) },
-                label = { Text(text = colo, fontSize = 12.sp) },
+                modifier = Modifier.pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            if (colo != "ALL") {
+                                showDeleteIcon = true
+                            }
+                        },
+                        onTap = { onColoSelect(colo) }
+                    )
+                },
+                label = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = colo, fontSize = 12.sp)
+                        if (colo != "ALL" && showDeleteIcon) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "删除 $colo",
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clickable { 
+                                        manuallyRemovedColos = manuallyRemovedColos + colo 
+                                        showDeleteIcon = false
+                                    },
+                                tint = if (isSelected) Color.White else MutedText
+                            )
+                        }
+                    }
+                },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = CfOrangePrimary,
                     selectedLabelColor = Color.White
