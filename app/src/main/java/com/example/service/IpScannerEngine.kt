@@ -70,7 +70,11 @@ class IpScannerEngine(private val context: Context) {
         isCancelled = false
         _progressState.value = _progressState.value.copy(
             isScanning = true,
-            statusMessage = "正在加载 Cloudflare 数据中心和子网..."
+            statusMessage = "正在加载 Cloudflare 数据中心和子网...",
+            results = emptyList(),
+            scannedCount = 0,
+            validCount = 0,
+            progressPercentage = 0f
         )
 
         val locationsMap = CloudflareLocations.loadLocations()

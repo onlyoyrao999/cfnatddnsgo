@@ -568,8 +568,9 @@ fun QuickFilterChips(
         val isAllSelected = currentFilters.isEmpty() || currentFilters.contains("ALL")
         val selectedColos = currentFilters.filter { it != "ALL" }.toSet()
 
-        val defaultList = listOf("FRA", "HAM", "HKG", "LAX", "LHR", "SJC", "SIN", "NRT", "CDG")
-        val allAvailable = (defaultList + discoveredColos).distinct()
+        // User requested to clear all unlit colos immediately when a new scan starts.
+        // Therefore, we no longer use a hardcoded default list. Only discovered and selected colos are shown.
+        val allAvailable = discoveredColos.toList()
 
         if (isAllSelected) {
             // If ALL is lit up: Show everything. 
