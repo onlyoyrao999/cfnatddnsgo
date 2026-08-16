@@ -92,7 +92,7 @@ class IpScannerEngine(private val context: Context) {
         val goalMet = java.util.concurrent.atomic.AtomicBoolean(false)
         val scannedCounter = AtomicInteger(0)
         val validCounter = AtomicInteger(0)
-        val existingResults = _progressState.value.results
+        val existingResults = emptyList<ScannedIp>()
         val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
         
         var batchCount = 0
