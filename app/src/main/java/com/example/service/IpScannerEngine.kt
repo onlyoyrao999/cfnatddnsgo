@@ -92,31 +92,8 @@ class IpScannerEngine(private val context: Context) {
         val goalMet = java.util.concurrent.atomic.AtomicBoolean(false)
         val scannedCounter = AtomicInteger(0)
         val validCounter = AtomicInteger(0)
-        val existingResults = if (isAllRegions) {
-            _progressState.value.results
-        } else {
-            _progressState.value.results.filter { ip ->
-                filters.any { filter -> ip.dataCenter.equals(filter, ignoreCase = true) }
-            }
-        }
-                val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
-        
-        // Pre-populate coloCounts so we know how many we already have
-        existingResults.forEach { ip ->
-            val colo = ip.dataCenter.uppercase()
-            coloCounts.getOrPut(colo) { AtomicInteger(0) }.incrementAndGet()
-        }
-        
-        // If we already met the goal before scanning, don't scan
-        if (!isAllRegions && filters.isNotEmpty()) {
-            val allMet = filters.all { f ->
-                (coloCounts[f.uppercase()]?.get() ?: 0) >= maxPerColo
-            }
-            if (allMet) {
-                goalMet.set(true)
-            }
-        }
-
+        val existingResults = _progressState.value.results
+        val resultsQueue = ConcurrentLinkedQueue<ScannedIp>(existingResults)
         
         var batchCount = 0
 

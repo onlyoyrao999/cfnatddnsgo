@@ -1,6 +1,6 @@
-# CF IP 优选与DNS 🚀
+# CF IP 优选与代理 🚀
 
-**CF IP 优选与DNS** 是一款基于 Android 平台的 Cloudflare 优选 IP 扫描与自动 DNS 解析同步工具。它可以帮助您快速扫描 Cloudflare 边缘节点，找出延迟最低的优质 IP，并严格按照节点区域自动将其同步到您的 Cloudflare 域名解析记录中。
+**CF IP 优选与代理** 是一款基于 Android 平台的 Cloudflare 优选 IP 扫描与自动 DNS 解析同步工具。它可以帮助您快速扫描 Cloudflare 边缘节点，找出延迟最低的优质 IP，并严格按照节点区域自动将其同步到您的 Cloudflare 域名解析记录中。
 
 ## ✨ 核心功能
 
@@ -49,13 +49,6 @@
 
 ## 🤝 贡献与反馈
 
-CMLiussss 技术交流群
+如果您在使用过程中遇到 Bug 或有新功能的建议，欢迎提交 [Issues](../../issues) 或发起 Pull Request。
 
- @onlyno999 交流改进
-
-
-TG交流群：t.me/CMLiussss 
-
-如果您觉得这个工具对您有帮助，不妨点个 ⭐️ Star 支持一下！
-
-如果您在使用过程中遇到 Bug 或有新功能的建议，欢迎提交 Issues 或发起 Pull Request。
+如果您觉得这个工具对您有帮助，不妨点个 ⭐️ **Star** 支持一下！

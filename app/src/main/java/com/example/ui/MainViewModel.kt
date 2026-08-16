@@ -98,8 +98,7 @@ class MainViewModel(
             expectedCode = prefs.getInt("sc_expectedCode", 200),
             random = prefs.getBoolean("sc_random", true),
             ipCount = prefs.getInt("sc_ipCount", 2000),
-            useTls = prefs.getBoolean("sc_useTls", true),
-            maxPerColo = prefs.getInt("sc_maxPerColo", 10)
+            useTls = prefs.getBoolean("sc_useTls", true)
         )
     }
 
