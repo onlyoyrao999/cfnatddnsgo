@@ -70,23 +70,27 @@ class MainViewModel(
         viewModelScope.launch {
             repository.savedIps.collect { savedEntities ->
                 if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty() && savedEntities.isNotEmpty()) {
-                    // Find the latest test time
-                    val latestTime = savedEntities.maxOf { it.testedAt }
-                    // Filter IPs that were scanned in the same session (within 5 minutes of the latest)
-                    val lastSessionIps = savedEntities.filter { it.testedAt >= latestTime - 5 * 60 * 1000 }
+                    val lastScanIpsString = prefs.getString("last_scan_ips", "") ?: ""
+                    val lastScanIpsSet = lastScanIpsString.split(",").filter { it.isNotBlank() }.toSet()
                     
-                    val initialIps = lastSessionIps.map { entity ->
-                        ScannedIp(
-                            ip = entity.ip,
-                            dataCenter = entity.dataCenter,
-                            region = entity.region,
-                            city = entity.city,
-                            latencyMs = entity.latencyMs,
-                            testedAt = entity.testedAt,
-                            ipVersion = entity.ipVersion
-                        )
+                    if (lastScanIpsSet.isNotEmpty()) {
+                        val sessionEntities = savedEntities.filter { lastScanIpsSet.contains(it.ip) }
+                        val initialIps = sessionEntities.map { entity ->
+                            ScannedIp(
+                                ip = entity.ip,
+                                dataCenter = entity.dataCenter,
+                                region = entity.region,
+                                city = entity.city,
+                                latencyMs = entity.latencyMs,
+                                testedAt = entity.testedAt,
+                                ipVersion = entity.ipVersion
+                            )
+                        }
+                        // Only load them if they match the ones we actually saved in the last scan
+                        if (initialIps.isNotEmpty()) {
+                            scannerEngine.setInitialResults(initialIps)
+                        }
                     }
-                    scannerEngine.setInitialResults(initialIps)
                 }
             }
         }
@@ -178,6 +182,10 @@ class MainViewModel(
                     )
                 }
                 repository.saveIps(entities)
+                
+                // Store exactly which IPs were in this scan, to perfectly restore them on next boot
+                val ipString = state.results.joinToString(",") { it.ip }
+                prefs.edit().putString("last_scan_ips", ipString).apply()
 
                 // Auto-sync enabled Cloudflare DNS rules
                 if (_isAutoSyncEnabled.value) {
