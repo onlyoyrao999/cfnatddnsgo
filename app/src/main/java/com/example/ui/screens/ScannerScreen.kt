@@ -176,15 +176,21 @@ fun ScannerScreen(
             onColoSelect = { colo ->
                 val currentFilters = scanConfig.coloFilter.split(",")
                     .map { it.trim().uppercase() }
-                    .filter { it.isNotBlank() }
+                    .filter { it.isNotBlank() && it != "ALL" }
                     .toMutableSet()
                 
-                if (currentFilters.contains(colo)) {
-                    currentFilters.remove(colo)
+                if (colo == "ALL") {
+                    currentFilters.clear()
                 } else {
-                    currentFilters.add(colo)
+                    if (currentFilters.contains(colo)) {
+                        currentFilters.remove(colo)
+                    } else {
+                        currentFilters.add(colo)
+                    }
                 }
-                viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
+                
+                val newFilterStr = if (currentFilters.isEmpty()) "ALL" else currentFilters.joinToString(",")
+                viewModel.updateScanConfig(scanConfig.copy(coloFilter = newFilterStr))
             }
         )
 
@@ -533,34 +539,10 @@ fun QuickFilterChips(
     displayResults: List<ScannedIp>,
     onColoSelect: (String) -> Unit
 ) {
-    var discoveredColos by remember { 
-        mutableStateOf(
-            scanConfig.coloFilter.split(",")
-                .map { it.trim().uppercase() }
-                .filter { it.isNotBlank() && it != "ALL" }
-                .toSet()
-        ) 
-    }
-    
-    // Clear unselected discovered colos when a new scan starts
-    LaunchedEffect(scanProgress.isScanning) {
-        if (scanProgress.isScanning) {
-            discoveredColos = scanConfig.coloFilter.split(",")
-                .map { it.trim().uppercase() }
-                .filter { it.isNotBlank() && it != "ALL" }
-                .toSet()
-        }
-    }
-    // Accumulate discovered colos over time based on what is actually shown
-    LaunchedEffect(displayResults) {
-        if (displayResults.isNotEmpty()) {
-            val newColos = displayResults.map { it.dataCenter.uppercase() }.toSet()
-            discoveredColos = discoveredColos + newColos
-        }
-    }
-
-    val dynamicColos = remember(discoveredColos) {
-        discoveredColos.sorted()
+    // Strictly derive chips from the currently available IPs in the engine.
+    // No historical accumulation. If it's not in the results, it doesn't get a chip.
+    val dynamicColos = remember(scanProgress.results) {
+        scanProgress.results.map { it.dataCenter.uppercase() }.filter { it.isNotBlank() }.distinct().sorted()
     }
     
     val presets = remember(dynamicColos) {
