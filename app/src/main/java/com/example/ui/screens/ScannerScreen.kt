@@ -559,10 +559,34 @@ fun QuickFilterChips(
         }
     }
 
-    val dynamicColos = remember(discoveredColos) {
-        discoveredColos.sorted()
+    val dynamicColos = remember(discoveredColos, scanConfig.coloFilter) {
+        val currentFilters = scanConfig.coloFilter.split(",")
+            .map { it.trim().uppercase() }
+            .filter { it.isNotBlank() }
+            .toSet()
+            
+        val isAllSelected = currentFilters.isEmpty() || currentFilters.contains("ALL")
+        val selectedColos = currentFilters.filter { it != "ALL" }.toSet()
+
+        val defaultList = listOf("FRA", "HAM", "HKG", "LAX", "LHR", "SJC", "SIN", "NRT", "CDG")
+        val allAvailable = (defaultList + discoveredColos).distinct()
+
+        if (isAllSelected) {
+            // If ALL is lit up: Show everything. 
+            // Sort selected ones to the left, unselected to the right.
+            allAvailable.sortedWith { a, b ->
+                val aSelected = selectedColos.contains(a)
+                val bSelected = selectedColos.contains(b)
+                if (aSelected && !bSelected) -1
+                else if (!aSelected && bSelected) 1
+                else a.compareTo(b)
+            }
+        } else {
+            // If ALL is NOT lit up: Show ONLY the selected ones, hide the unselected (gray) ones.
+            allAvailable.filter { selectedColos.contains(it) }.sorted()
+        }
     }
-    
+       
     val presets = remember(dynamicColos) {
         listOf("ALL") + dynamicColos
     }
