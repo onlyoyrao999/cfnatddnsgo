@@ -69,8 +69,13 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             repository.savedIps.collect { savedEntities ->
-                if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty()) {
-                    val initialIps = savedEntities.map { entity ->
+                if (!scannerEngine.progressState.value.isScanning && scannerEngine.progressState.value.results.isEmpty() && savedEntities.isNotEmpty()) {
+                    // Find the latest test time
+                    val latestTime = savedEntities.maxOf { it.testedAt }
+                    // Filter IPs that were scanned in the same session (within 5 minutes of the latest)
+                    val lastSessionIps = savedEntities.filter { it.testedAt >= latestTime - 5 * 60 * 1000 }
+                    
+                    val initialIps = lastSessionIps.map { entity ->
                         ScannedIp(
                             ip = entity.ip,
                             dataCenter = entity.dataCenter,
