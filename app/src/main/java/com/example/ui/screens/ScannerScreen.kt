@@ -163,6 +163,14 @@ fun ScannerScreen(
                     }
                     viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
                 }
+            },
+            onColoRemove = { coloToRemove ->
+                val currentFilters = scanConfig.coloFilter.split(",")
+                    .map { it.trim().uppercase() }
+                    .filter { it.isNotBlank() && it != "ALL" }
+                    .toMutableSet()
+                currentFilters.remove(coloToRemove)
+                viewModel.updateScanConfig(scanConfig.copy(coloFilter = currentFilters.joinToString(",")))
             }
         )
 
@@ -170,7 +178,7 @@ fun ScannerScreen(
 
         val displayResults = remember(scanProgress.results, scanConfig.coloFilter) {
             val uniqueResults = scanProgress.results.distinctBy { it.ip }
-            if (scanConfig.coloFilter.isNotBlank()) {
+            val filteredResults = if (scanConfig.coloFilter.isNotBlank()) {
                 val filters = scanConfig.coloFilter.split(",").map { it.trim().uppercase() }
                 if (filters.contains("ALL")) {
                     uniqueResults
@@ -182,6 +190,11 @@ fun ScannerScreen(
             } else {
                 uniqueResults
             }
+            
+            // Limit to max 10 IPs per datacenter
+            filteredResults.groupBy { it.dataCenter.uppercase() }
+                .flatMap { it.value.take(10) }
+                .sortedBy { it.latencyMs }
         }
 
         // Results Section Header
@@ -507,7 +520,8 @@ fun ScanConfigCard(
 fun QuickFilterChips(
     scanConfig: ScanConfig,
     scanProgress: ScanProgressState,
-    onColoSelect: (String) -> Unit
+    onColoSelect: (String) -> Unit,
+    onColoRemove: (String) -> Unit
 ) {
     var manuallyRemovedColos by remember { mutableStateOf(setOf<String>()) }
     var discoveredColos by remember { 
@@ -519,10 +533,14 @@ fun QuickFilterChips(
         ) 
     }
     
-    // Reset manually removed colos when a new scan starts
+    // Reset manually removed colos and clear unselected discovered colos when a new scan starts
     LaunchedEffect(scanProgress.isScanning) {
         if (scanProgress.isScanning) {
             manuallyRemovedColos = emptySet()
+            discoveredColos = scanConfig.coloFilter.split(",")
+                .map { it.trim().uppercase() }
+                .filter { it.isNotBlank() && it != "ALL" }
+                .toSet()
         }
     }
 
@@ -581,6 +599,7 @@ fun QuickFilterChips(
                                 .size(14.dp)
                                 .clickable { 
                                     manuallyRemovedColos = manuallyRemovedColos + colo 
+                                    onColoRemove(colo)
                                     showDeleteIcon = false
                                 },
                             tint = if (isSelected) Color.White else MutedText

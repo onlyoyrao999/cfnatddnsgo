@@ -69,12 +69,12 @@ class MainViewModel(
             ipType = prefs.getString("sc_ipType", "4") ?: "4",
             port = prefs.getInt("sc_port", 443),
             maxThreads = prefs.getInt("sc_maxThreads", 100),
-            delayMs = prefs.getInt("sc_delayMs", 300),
+            delayMs = prefs.getInt("sc_delayMs", 350),
             coloFilter = prefs.getString("sc_coloFilter", "") ?: "",
             domain = prefs.getString("sc_domain", "cloudflaremirrors.com/debian") ?: "cloudflaremirrors.com/debian",
             expectedCode = prefs.getInt("sc_expectedCode", 200),
             random = prefs.getBoolean("sc_random", true),
-            ipCount = prefs.getInt("sc_ipCount", 1000),
+            ipCount = prefs.getInt("sc_ipCount", 2000),
             useTls = prefs.getBoolean("sc_useTls", true)
         )
     }

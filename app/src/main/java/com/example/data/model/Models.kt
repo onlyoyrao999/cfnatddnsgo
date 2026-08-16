@@ -37,12 +37,12 @@ data class ScanConfig(
     val ipType: String = "4", // "4" or "6"
     val port: Int = 443,
     val maxThreads: Int = 100,
-    val delayMs: Int = 300,
+    val delayMs: Int = 350,
     val coloFilter: String = "", // e.g. "HKG,SJC,LAX"
     val domain: String = "cloudflaremirrors.com/debian",
     val expectedCode: Int = 200,
     val random: Boolean = true,
-    val ipCount: Int = 1000,
+    val ipCount: Int = 2000,
     val useTls: Boolean = true
 )
 
